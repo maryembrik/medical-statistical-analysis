@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistical Decision Tree</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: #fafafa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: #1a1a1a;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .header h1 {
+            color: #1a1a1a;
+            font-size: 2.75rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -0.03em;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1.125rem;
+            font-weight: 400;
+            letter-spacing: -0.01em;
+        }
+
+        .decision-tree {
+            background: white;
+            border-radius: 16px;
+            padding: 48px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 10px 40px rgba(0,0,0,0.03);
+            border: 1px solid #f0f0f0;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 2px;
+            background: #f3f4f6;
+            border-radius: 10px;
+            margin-bottom: 40px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #1a1a1a;
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 10px;
+        }
+
+        .question {
+            color: #1a1a1a;
+            padding: 0;
+            margin-bottom: 32px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+        }
+
+        .options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .option-card {
+            background: #ffffff;
+            color: #1a1a1a;
+            padding: 28px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1.5px solid #e5e7eb;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #fafafa;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .option-card:hover {
+            transform: translateY(-2px);
+            border-color: #1a1a1a;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .option-card:hover::before {
+            opacity: 1;
+        }
+
+        .option-card.selected {
+            border-color: #1a1a1a;
+            background: #1a1a1a;
+            color: white;
+        }
+
+        .option-card.selected .option-desc {
+            color: rgba(255,255,255,0.8);
+        }
+
+        .option-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+            letter-spacing: -0.01em;
+        }
+
+        .option-desc {
+            font-size: 0.9375rem;
+            color: #6b7280;
+            line-height: 1.5;
+            position: relative;
+            z-index: 1;
+            font-weight: 400;
+        }
+
+        .result {
+            background: #fafafa;
+            padding: 40px;
+            border-radius: 12px;
+            margin-top: 32px;
+            display: none;
+            animation: slideIn 0.4s ease-out;
+            border: 1px solid #e5e7eb;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result h2 {
+            color: #1a1a1a;
+            font-size: 1.5rem;
+            margin-bottom: 24px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .result p {
+            color: #4b5563;
+            font-size: 1rem;
+            line-height: 1.7;
+            margin-bottom: 16px;
+            font-weight: 400;
+        }
+
+        .result p strong {
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .test-name {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 24px 0;
+            padding: 0;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        .reset-btn {
+            background: #1a1a1a;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 24px;
+            transition: all 0.2s ease;
+            letter-spacing: -0.01em;
+        }
+
+        .reset-btn:hover {
+            background: #2d2d2d;
+            transform: translateY(-1px);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 32px;
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            transition: all 0.3s ease;
+        }
+
+        .step-dot.active {
+            background: #1a1a1a;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 24px 16px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .question {
+                font-size: 1.25rem;
+            }
+            
+            .decision-tree {
+                padding: 32px 24px;
+            }
+
+            .options {
+                grid-template-columns: 1fr;
+            }
+
+            .result {
+                padding: 28px 24px;
+            }
+        }
+
+        .emoji {
+            font-style: normal;
+            margin-right: 6px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Statistical Test Decision Tool</h1>
+            <p>Find the right test for your research in seconds</p>
+        </div>
+
+        <div class="decision-tree">
+            <div class="step-indicator">
+                <div class="step-dot active" id="dot1"></div>
+                <div class="step-dot" id="dot2"></div>
+                <div class="step-dot" id="dot3"></div>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+
+            <div id="step1" class="step">
+                <div class="question">What type of data are you analyzing?</div>
+                <div class="options">
+                    <div class="option-card" onclick="selectData('categorical')">
+                        <div class="option-title">Categorical Data</div>
+                        <div class="option-desc">Nominal or ordinal (categories, rankings, yes/no)</div>
+                    </div>
+                    <div class="option-card" onclick="selectData('numerical')">
+                        <div class="option-title">Numerical Data</div>
+                        <div class="option-desc">Continuous measurements (scores, values, measurements)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step2" class="step" style="display:none;"></div>
+            
+            <div id="result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let dataType = '';
+        let progress = 0;
+        let currentStep = 1;
+
+        function updateProgress(percent) {
+            progress = percent;
+            document.getElementById('progress').style.width = percent + '%';
+        }
+
+        function updateStepIndicator(step) {
+            currentStep = step;
+            for (let i = 1; i <= 3; i++) {
+                const dot = document.getElementById('dot' + i);
+                if (i <= step) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            }
+        }
+
+        function selectData(type) {
+            dataType = type;
+            updateProgress(33);
+            updateStepIndicator(2);
+            document.getElementById('step1').style.display = 'none';
+            
+            if (type === 'categorical') {
+                document.getElementById('step2').innerHTML = `
+                    <div class="question">What are you testing?</div>
+                    <div class="options">
+                        <div class="option-card" onclick="showResult('chi-square-goodness')">
+                            <div class="option-title">Goodness of Fit</div>
+                            <div class="option-desc">Testing if observed frequencies match expected</div>
+                        </div>
+                        <div class="option-card" onclick="showResult('chi-square-independence')">
+                            <div class="option-title">Independence</div>
+                            <div class="option-desc">Testing relationship between two categorical variables</div>
+                        </div>
+                        <div class="option-card" onclick="showResult('chi-square-homogeneity')">
+                            <div class="option-title">Homogeneity</div>
+                            <div class="option-desc">Comparing distributions across different groups</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('step2').innerHTML = `
+                    <div class="question">Is your data normally distributed?</div>
+                    <div class="options">
+                        <div class="option-card" onclick="selectDistribution('normal')">
+                            <div class="option-title">Yes, Normal</div>
+                            <div class="option-desc">Data follows a bell curve distribution</div>
+                        </div>
+                        <div class="option-card" onclick="selectDistribution('non-normal')">
+                            <div class="option-title">No / Unsure</div>
+                            <div class="option-desc">Data is skewed or small sample (n < 30)</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('step2').style.display = 'block';
+            updateProgress(50);
+        }
+
+        function selectDistribution(dist) {
+            updateProgress(66);
+            updateStepIndicator(3);
+            if (dist === 'normal') {
+                document.getElementById('step2').innerHTML = `
+                    <div class="question">How many groups are you comparing?</div>
+                    <div class="options">
+                        <div class="option-card" onclick="selectGroups('one', 'parametric')">
+                            <div class="option-title">One Group</div>
+                            <div class="option-desc">Comparing sample mean to known value</div>
+                        </div>
+                        <div class="option-card" onclick="selectGroups('two', 'parametric')">
+                            <div class="option-title">Two Groups</div>
+                            <div class="option-desc">Comparing means of two groups</div>
+                        </div>
+                        <div class="option-card" onclick="selectGroups('three-plus', 'parametric')">
+                            <div class="option-title">Three or More</div>
+                            <div class="option-desc">Comparing means across multiple groups</div>
+                        </div>
+                        <div class="option-card" onclick="showResult('correlation')">
+                            <div class="option-title">Relationship</div>
+                            <div class="option-desc">Examining correlation or regression</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                document.getElementById('step2').innerHTML = `
+                    <div class="question">How many groups are you comparing?</div>
+                    <div class="options">
+                        <div class="option-card" onclick="selectGroups('two', 'non-parametric')">
+                            <div class="option-title">Two Groups</div>
+                            <div class="option-desc">Comparing two independent or paired groups</div>
+                        </div>
+                        <div class="option-card" onclick="selectGroups('three-plus', 'non-parametric')">
+                            <div class="option-title">Three or More</div>
+                            <div class="option-desc">Comparing multiple groups</div>
+                        </div>
+                        <div class="option-card" onclick="showResult('spearman')">
+                            <div class="option-title">Relationship</div>
+                            <div class="option-desc">Non-parametric correlation</div>
+                        </div>
+                    </div>
+                `;
+            }
+            updateProgress(75);
+        }
+
+        function selectGroups(count, testType) {
+            updateProgress(85);
+            if (testType === 'parametric') {
+                if (count === 'one') {
+                    showResult('one-sample-t');
+                } else if (count === 'two') {
+                    document.getElementById('step2').innerHTML = `
+                        <div class="question">Are the groups independent or paired?</div>
+                        <div class="options">
+                            <div class="option-card" onclick="showResult('independent-t')">
+                                <div class="option-title">Independent</div>
+                                <div class="option-desc">Two separate groups of subjects</div>
+                            </div>
+                            <div class="option-card" onclick="showResult('paired-t')">
+                                <div class="option-title">Paired</div>
+                                <div class="option-desc">Same subjects measured twice (before/after)</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    showResult('anova');
+                }
+            } else {
+                if (count === 'two') {
+                    document.getElementById('step2').innerHTML = `
+                        <div class="question">Are the groups independent or paired?</div>
+                        <div class="options">
+                            <div class="option-card" onclick="showResult('mann-whitney')">
+                                <div class="option-title">Independent</div>
+                                <div class="option-desc">Two separate groups</div>
+                            </div>
+                            <div class="option-card" onclick="showResult('wilcoxon-signed')">
+                                <div class="option-title">Paired</div>
+                                <div class="option-desc">Same subjects measured twice</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    showResult('kruskal-wallis');
+                }
+            }
+        }
+
+        function showResult(test) {
+            updateProgress(100);
+            document.getElementById('step2').style.display = 'none';
+            const resultDiv = document.getElementById('result');
+            
+            const tests = {
+                'one-sample-t': {
+                    name: 'One-Sample T-Test',
+                    desc: 'Compares your sample mean against a known population value.',
+                    when: 'Use when you have one group and want to test if its mean differs from a hypothesized value.',
+                    example: 'Testing if average student scores differ from the national average of 75.'
+                },
+                'independent-t': {
+                    name: 'Independent Samples T-Test',
+                    desc: 'Compares means between two separate, unrelated groups.',
+                    when: 'Use when comparing two different groups (e.g., treatment vs control).',
+                    example: 'Comparing average heights between males and females.'
+                },
+                'paired-t': {
+                    name: 'Paired T-Test',
+                    desc: 'Compares means from the same group measured at two different times.',
+                    when: 'Use for before-after studies or matched pairs.',
+                    example: 'Testing weight loss: measuring the same people before and after a diet program.'
+                },
+                'anova': {
+                    name: 'ANOVA (Analysis of Variance)',
+                    desc: 'Compares means across three or more groups simultaneously.',
+                    when: 'Use when you have 3+ independent groups to compare.',
+                    example: 'Comparing test scores across different teaching methods (online, hybrid, in-person).'
+                },
+                'correlation': {
+                    name: 'Pearson Correlation & Regression',
+                    desc: 'Measures the linear relationship between two continuous variables.',
+                    when: 'Use to examine how two variables are related or to predict one from another.',
+                    example: 'Examining the relationship between study hours and exam scores.'
+                },
+                'mann-whitney': {
+                    name: 'Mann-Whitney U Test',
+                    desc: 'Non-parametric alternative to independent t-test.',
+                    when: 'Use when comparing two independent groups with non-normal data or small samples.',
+                    example: 'Comparing median customer satisfaction scores between two stores.'
+                },
+                'wilcoxon-signed': {
+                    name: 'Wilcoxon Signed-Rank Test',
+                    desc: 'Non-parametric alternative to paired t-test.',
+                    when: 'Use for paired data that is not normally distributed.',
+                    example: 'Testing median pain levels before and after treatment with skewed data.'
+                },
+                'kruskal-wallis': {
+                    name: 'Kruskal-Wallis H Test',
+                    desc: 'Non-parametric alternative to ANOVA.',
+                    when: 'Use when comparing 3+ groups with non-normal data.',
+                    example: 'Comparing median income across multiple education levels.'
+                },
+                'spearman': {
+                    name: 'Spearman Correlation',
+                    desc: 'Measures monotonic (not necessarily linear) relationship between variables.',
+                    when: 'Use for ordinal data or non-linear relationships.',
+                    example: 'Examining relationship between class rank and hours studied.'
+                },
+                'chi-square-goodness': {
+                    name: 'Chi-Square Goodness of Fit',
+                    desc: 'Tests if observed frequencies match expected distribution.',
+                    when: 'Use to test if your sample matches a hypothesized distribution.',
+                    example: 'Testing if a die is fair by comparing rolled frequencies to expected (1/6 each).'
+                },
+                'chi-square-independence': {
+                    name: 'Chi-Square Test of Independence',
+                    desc: 'Tests if two categorical variables are related.',
+                    when: 'Use to examine if there is a relationship between two categories.',
+                    example: 'Testing if gender is related to product preference.'
+                },
+                'chi-square-homogeneity': {
+                    name: 'Chi-Square Test of Homogeneity',
+                    desc: 'Compares distributions of a categorical variable across different populations.',
+                    when: 'Use to test if different groups have the same distribution.',
+                    example: 'Comparing political party preferences across different age groups.'
+                }
+            };
+
+            const testInfo = tests[test];
+            
+            resultDiv.innerHTML = `
+                <h2>Your recommended test</h2>
+                <div class="test-name">${testInfo.name}</div>
+                <p><strong>What it does:</strong> ${testInfo.desc}</p>
+                <p><strong>When to use:</strong> ${testInfo.when}</p>
+                <p><strong>Example:</strong> ${testInfo.example}</p>
+                <button class="reset-btn" onclick="reset()">Start Over</button>
+            `;
+            
+            resultDiv.classList.add('show');
+        }
+
+        function reset() {
+            updateProgress(0);
+            updateStepIndicator(1);
+            document.getElementById('step1').style.display = 'block';
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step2').innerHTML = '';
+            document.getElementById('result').classList.remove('show');
+            dataType = '';
+        }
+    </script>
+</body>
+</html>
